@@ -1,0 +1,15 @@
+{
+  "name": "baron-e2e-tests",
+  "private": true,
+  "description": "Automated API + UI tests for the Baron Learning platform (staging by default).",
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui-desktop --project=ui-mobile",
+    "test:headed": "playwright test --project=ui-desktop --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}
