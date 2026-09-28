@@ -29,7 +29,7 @@ test.describe('logged-in student', () => {
       page.goto('/account'),
     ]);
     expect(res.status()).toBe(200);
-    const profile = await res.json();
+    const profile = (await res.json()).data;
     await expect(page.getByText(profile.email).first()).toBeVisible();
   });
 

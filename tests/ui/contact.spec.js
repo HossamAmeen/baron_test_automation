@@ -5,7 +5,7 @@ const submitButton = (page) => page.getByRole('button', { name: 'ارسال ال
 
 test.describe('contact us', () => {
   test('shows contact details from the configuration API', async ({ page, api }) => {
-    const config = await (await api.get('configuration/configuration/')).json();
+    const config = (await (await api.get('configuration/configuration/')).json()).data;
     await page.goto('/contactus');
     await expect(page.getByText(config.email).first()).toBeVisible();
   });

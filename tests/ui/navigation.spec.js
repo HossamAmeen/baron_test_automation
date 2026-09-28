@@ -69,16 +69,16 @@ test.describe('navigation', () => {
 test.describe('landing page', () => {
   test('renders sliders, reviews and contact data from the API', async ({ page, api }) => {
     const [sliders, reviews, config] = await Promise.all(
-      ['configuration/sliders/', 'configuration/reviews/', 'configuration/configuration/'].map(async (p) => (await api.get(p)).json()),
+      ['configuration/sliders/', 'configuration/reviews/', 'configuration/configuration/'].map(async (p) => (await (await api.get(p)).json()).data),
     );
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    if (sliders.results.length) {
+    if (sliders.length) {
       const srcs = await page.locator('img').evaluateAll((imgs) => imgs.map((i) => i.currentSrc || i.src));
-      expect(srcs.some((src) => sliders.results.some((s) => src === s.image)), 'a slider image is rendered').toBe(true);
+      expect(srcs.some((src) => sliders.some((s) => src === s.image)), 'a slider image is rendered').toBe(true);
     }
-    if (reviews.results.length) await expect(page.getByText(reviews.results[0].name).first()).toBeAttached();
+    if (reviews.length) await expect(page.getByText(reviews[0].name).first()).toBeAttached();
     // Footer renders the WhatsApp link from the configuration record.
     if (config.whatsapp_number) {
       const digits = String(config.whatsapp_number).replaceAll(' ', '');

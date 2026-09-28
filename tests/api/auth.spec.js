@@ -21,15 +21,16 @@ test.describe('registration validation', () => {
     const res = await api.post('auth/register/', { data: {} });
     expect(res.status()).toBe(400);
     const body = await res.json();
+    expect(body.code).toBe('validation_error');
     for (const key of ['first_name', 'last_name', 'phone', 'parent_phone', 'email', 'password', 'password_confirmation']) {
-      expect(body, `error for ${key}`).toHaveProperty(key);
+      expect(body.errors, `error for ${key}`).toHaveProperty(key);
     }
   });
 
   test('invalid email is rejected', async ({ api }) => {
     const res = await api.post('auth/register/', { data: validRegistration() });
     expect(res.status()).toBe(400);
-    expect(await res.json()).toHaveProperty('email');
+    expect((await res.json()).errors).toHaveProperty('email');
   });
 
   // Random values so an "already exists" error from an earlier run can't mask a missing format rule.
@@ -39,22 +40,22 @@ test.describe('registration validation', () => {
     test(`phone with ${label} is rejected (BUG-07)`, async ({ api }) => {
       const res = await api.post('auth/register/', { data: validRegistration({ phone: phone() }) });
       expect(res.status()).toBe(400);
-      const body = await res.json();
-      expect(body, 'phone format error').toHaveProperty('phone');
-      expect(body.phone.join(' ')).not.toMatch(/already exists/i);
+      const { errors } = await res.json();
+      expect(errors, 'phone format error').toHaveProperty('phone');
+      expect(errors.phone.join(' ')).not.toMatch(/already exists/i);
     });
   }
 
   test('names longer than 100 characters are rejected', async ({ api }) => {
     const res = await api.post('auth/register/', { data: validRegistration({ first_name: 'ا'.repeat(101) }) });
     expect(res.status()).toBe(400);
-    expect(await res.json()).toHaveProperty('first_name');
+    expect((await res.json()).errors).toHaveProperty('first_name');
   });
 
   test('script tags in names are rejected (BUG-09)', async ({ api }) => {
     const res = await api.post('auth/register/', { data: validRegistration({ first_name: '<script>alert(1)</script>' }) });
     expect(res.status()).toBe(400);
-    expect(await res.json(), 'first_name error').toHaveProperty('first_name');
+    expect((await res.json()).errors, 'first_name error').toHaveProperty('first_name');
   });
 
   test('new registration is inactive until activated (ALLOW_WRITES)', async ({ api }) => {
@@ -69,7 +70,7 @@ test.describe('registration validation', () => {
 
     const login = await api.post('auth/login/', { data: { username: creds.phone, password: creds.password } });
     expect(login.status()).toBe(401);
-    expect(JSON.stringify(await login.json())).toMatch(/not active/i);
+    expect((await login.json()).code).toBe('account_inactive');
   });
 });
 
@@ -77,17 +78,18 @@ test.describe('login', () => {
   test('missing fields return 400', async ({ api }) => {
     const res = await api.post('auth/login/', { data: {} });
     expect(res.status()).toBe(400);
-    const body = await res.json();
-    expect(body).toHaveProperty('username');
-    expect(body).toHaveProperty('password');
+    const { errors } = await res.json();
+    expect(errors).toHaveProperty('username');
+    expect(errors).toHaveProperty('password');
   });
 
   test('unknown user returns 401 without tokens', async ({ api }) => {
     const res = await api.post('auth/login/', { data: { username: '01999999999', password: 'wrong-password' } });
     expect(res.status()).toBe(401);
     const body = await res.json();
-    expect(body).not.toHaveProperty('access');
-    expect(body).not.toHaveProperty('refresh');
+    expect(body.success).toBe(false);
+    expect(body.code).toBe('invalid_credentials');
+    expect(body.data).toBeNull();
   });
 
   test('configured student credentials are valid', async () => {
@@ -119,7 +121,7 @@ test.describe('password reset', () => {
   test('unknown email gets the generic 200 response', async ({ api }) => {
     const res = await api.post('auth/request-password-reset/', { data: { email: 'qa.e2e.nobody@mailinator.com' } });
     expect(res.status()).toBe(200);
-    expect((await res.json()).detail).toMatch(/if an account exists/i);
+    expect((await res.json()).message).toMatch(/if an account exists/i);
   });
 
   test('an invalid reset link shows an error page, not the form', async ({ api }) => {
@@ -147,7 +149,7 @@ test.describe('profile and change password', () => {
   test('student profile exposes the editable fields and no password', async ({ studentApi }) => {
     const res = await studentApi.get('auth/profile/');
     expect(res.status()).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()).data;
     for (const key of ['first_name', 'last_name', 'phone', 'parent_phone', 'email', 'gender']) {
       expect(body, key).toHaveProperty(key);
     }
@@ -155,12 +157,12 @@ test.describe('profile and change password', () => {
   });
 
   test('PATCH ignores password fields and keeps the profile intact', async ({ studentApi }) => {
-    const before = await (await studentApi.get('auth/profile/')).json();
+    const before = (await (await studentApi.get('auth/profile/')).json()).data;
     const res = await studentApi.patch('auth/profile/', {
       data: { first_name: before.first_name, password: 'Ignored-Passw0rd!' },
     });
     expect(res.status()).toBe(200);
-    const after = await res.json();
+    const after = (await res.json()).data;
     expect(after.first_name).toBe(before.first_name);
     expect(after).not.toHaveProperty('password');
   });
@@ -176,7 +178,7 @@ test.describe('profile and change password', () => {
     test(`change password rejects ${label}`, async ({ studentApi }) => {
       const res = await studentApi.post('auth/change-password/', { data: body() });
       expect(res.status()).toBe(400);
-      expect(Object.keys(await res.json()), `error keyed by ${field}`).toContain(field);
+      expect(Object.keys((await res.json()).errors), `error keyed by ${field}`).toContain(field);
     });
   }
 });

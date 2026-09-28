@@ -26,7 +26,7 @@ const test = base.test.extend({
   catalog: async ({ api }, use) => {
     const res = await api.get('courses/courses/');
     base.expect(res.status()).toBe(200);
-    const courses = (await res.json()).results;
+    const courses = (await res.json()).data;
     await use({
       courses,
       offerCourse: courses.find((c) => c.has_offer && c.original_currency === c.currency && c.original_price > c.price),

@@ -7,7 +7,7 @@ test.describe('configuration', () => {
   test('site configuration returns contact details', async ({ api }) => {
     const res = await api.get('configuration/configuration/');
     expect(res.status()).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()).data;
     for (const key of ['eg_number', 'ksa_number', 'email', 'about_us']) {
       expect(body, `configuration.${key}`).toHaveProperty(key);
     }
@@ -17,8 +17,8 @@ test.describe('configuration', () => {
   test('sliders are read-only and ordered by `ordering`', async ({ api }) => {
     const res = await api.get('configuration/sliders/');
     expect(res.status()).toBe(200);
-    const { count, results } = await res.json();
-    expect(count).toBe(results.length);
+    const { data: results, meta } = await res.json();
+    expect(meta.pagination.count).toBe(results.length);
     expect(isSortedBy(results, 'ordering')).toBe(true);
     for (const slide of results) expect(slide.image).toMatch(/^https?:\/\//);
 
@@ -28,7 +28,7 @@ test.describe('configuration', () => {
   test('reviews are read-only, ordered, and rated 1-5', async ({ api }) => {
     const res = await api.get('configuration/reviews/');
     expect(res.status()).toBe(200);
-    const { results } = await res.json();
+    const { data: results } = await res.json();
     expect(isSortedBy(results, 'ordering')).toBe(true);
     for (const review of results) {
       expect(review.rate).toBeGreaterThanOrEqual(1);
@@ -46,9 +46,9 @@ test.describe('contact us', () => {
   test('rejects an empty submission with every required field', async ({ api }) => {
     const res = await api.post('configuration/contact-us/', { data: {} });
     expect(res.status()).toBe(400);
-    const body = await res.json();
+    const { errors } = await res.json();
     for (const key of ['first_name', 'last_name', 'phone', 'subject', 'description']) {
-      expect(body, `error for ${key}`).toHaveProperty(key);
+      expect(errors, `error for ${key}`).toHaveProperty(key);
     }
   });
 
@@ -80,7 +80,7 @@ test.describe('health check', () => {
     const res = await api.get('api/health/', { headers: { 'x-API-Key': env.healthApiKey } });
     test.skip(res.status() === 429, 'rate-limited (2 req / 15 min); rerun later');
     expect(res.status()).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()).data;
     expect(body.status).toBe('healthy');
     expect(Number.isNaN(Date.parse(body.datetime))).toBe(false);
   });

@@ -8,7 +8,7 @@ test.describe('taxonomy', () => {
   test('education stages nest grades and semesters', async ({ api }) => {
     const res = await api.get('courses/education-stages/');
     expect(res.status()).toBe(200);
-    const { results } = await res.json();
+    const { data: results } = await res.json();
     expect(results.length).toBeGreaterThan(0);
     for (const stage of results) {
       expect(Array.isArray(stage.grades)).toBe(true);
@@ -19,7 +19,7 @@ test.describe('taxonomy', () => {
   test('countries nest education stages → grades → semesters', async ({ api }) => {
     const res = await api.get('courses/countries/');
     expect(res.status()).toBe(200);
-    const { results } = await res.json();
+    const { data: results } = await res.json();
     expect(results.length).toBeGreaterThan(0);
     for (const country of results) expect(Array.isArray(country.education_stages)).toBe(true);
   });
@@ -56,11 +56,11 @@ test.describe('catalog and pricing', () => {
   });
 
   test('course list, subject list and course detail agree on the effective price', async ({ api, catalog }) => {
-    const subjects = (await (await api.get('courses/subjects/')).json()).results;
+    const subjects = (await (await api.get('courses/subjects/')).json()).data;
     const fromSubjects = new Map(subjects.flatMap((s) => s.available_course || []).map((c) => [c.id, c]));
 
     for (const c of catalog.courses.slice(0, 5)) {
-      const detail = await (await api.get(`courses/courses/${c.id}/`)).json();
+      const detail = (await (await api.get(`courses/courses/${c.id}/`)).json()).data;
       expect([detail.price, detail.currency, detail.has_offer], `detail ${c.id}`).toEqual([c.price, c.currency, c.has_offer]);
       const sub = fromSubjects.get(c.id);
       if (sub) expect([sub.price, sub.currency], `subject entry ${c.id}`).toEqual([c.price, c.currency]);
@@ -70,7 +70,7 @@ test.describe('catalog and pricing', () => {
   test('anonymous course detail is not paid and not authenticated', async ({ api, catalog }) => {
     const res = await api.get(`courses/courses/${catalog.courses[0].id}/`);
     expect(res.status()).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()).data;
     expect(body.is_authenticated).toBe(false);
     expect(body.is_paid).toBe(false);
   });
@@ -89,14 +89,14 @@ test.describe('lesson content protection', () => {
   test('anonymous users cannot list lesson links', async ({ api }) => {
     const res = await api.get('courses/lessons/');
     if (res.status() !== 200) return; // 401/403/404 are all acceptable
-    const { results = [] } = await res.json();
+    const { data: results = [] } = await res.json();
     const exposed = results.filter((l) => l.video_link || l.test_link || l.explanation_file);
     expect(exposed.map((l) => l.id), 'lessons exposing content to anonymous users').toEqual([]);
   });
 
   test('anonymous course detail does not expose lesson links', async ({ api, catalog }) => {
     for (const c of catalog.courses) {
-      const body = await (await api.get(`courses/courses/${c.id}/`)).json();
+      const body = (await (await api.get(`courses/courses/${c.id}/`)).json()).data;
       const exposed = (body.lessons || []).filter((l) => l.video_link || l.test_link || l.explanation_file);
       expect(exposed.length, `course ${c.id} leaks lesson content`).toBe(0);
     }
@@ -105,15 +105,14 @@ test.describe('lesson content protection', () => {
 
 test.describe('as the student', () => {
   test('course detail knows the user is authenticated', async ({ studentApi, catalog }) => {
-    const body = await (await studentApi.get(`courses/courses/${catalog.courses[0].id}/`)).json();
+    const body = (await (await studentApi.get(`courses/courses/${catalog.courses[0].id}/`)).json()).data;
     expect(body.is_authenticated).toBe(true);
   });
 
   test('enrolled courses list only paid courses', async ({ studentApi }) => {
     const res = await studentApi.get('users/student/courses/');
     expect(res.status()).toBe(200);
-    const body = await res.json();
-    const items = Array.isArray(body) ? body : body.results;
+    const items = (await res.json()).data;
     expect(Array.isArray(items)).toBe(true);
   });
 });
