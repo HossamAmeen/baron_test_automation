@@ -18,7 +18,7 @@ test('log in as the test student', async ({ page }) => {
 
   await page.goto('/login');
   const form = page.locator('form').filter({ has: page.locator('button[aria-label="تسجيل الدخول"]') });
-  await form.locator('input[type="tel"]').fill(env.student.username);
+  await form.locator('#admin-edit-username').fill(env.student.username);
   await form.locator('input[type="password"]').fill(env.student.password);
 
   const [response] = await Promise.all([

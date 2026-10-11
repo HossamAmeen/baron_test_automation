@@ -19,12 +19,32 @@ test.describe('contact us', () => {
     expect(sent).toHaveLength(0);
   });
 
+  test('phone has a country-code picker and sends it with the number', async ({ page }) => {
+    let body;
+    await page.route('**/configuration/contact-us/', (route) => {
+      body = route.request().postDataJSON();
+      return route.fulfill({ status: 201, contentType: 'application/json', body: '{"success":true,"data":{}}' });
+    });
+    await page.goto('/contactus');
+    await page.locator('#admin-edit-first_name').fill('QA');
+    await page.locator('#admin-edit-last_name').fill('Automation');
+    await page.locator('select[aria-label="رمز الدولة"]').selectOption('+966');
+    await page.locator('input[type="tel"]').fill('0512345678');
+    await page.locator('#admin-edit-subject').fill('subject');
+    await page.locator('#admin-edit-description').fill('message');
+    await Promise.all([page.waitForRequest('**/contact-us/'), submitButton(page).click()]);
+    expect(body.phone).toBe('+966512345678');
+    // Form (including the phone picker) is cleared after a successful send.
+    await expect(page.locator('input[type="tel"]')).toHaveValue('');
+    await expect(page.locator('select[aria-label="رمز الدولة"]')).toHaveValue('+20');
+  });
+
   test('valid submission succeeds (ALLOW_WRITES)', async ({ page }) => {
     test.skip(!env.allowWrites, 'sends a real admin email; set ALLOW_WRITES=1');
     await page.goto('/contactus');
     await page.getByPlaceholder('الاسم الاول').fill('QA');
     await page.getByPlaceholder('اسم العائلة').fill('Automation');
-    await page.getByPlaceholder('رقم الهاتف المحمول').fill('01000000000');
+    await page.locator('input[type="tel"]').fill('01000000000');
     await page.getByPlaceholder('عنوان الرسالة').fill('QA automated test - please ignore');
     await page.getByPlaceholder('الرسالة', { exact: true }).fill(`Automated e2e run ${new Date().toISOString()}`);
     const [res] = await Promise.all([
