@@ -1,6 +1,7 @@
 {
   "name": "baron-e2e-tests",
   "private": true,
+  "version": "2.0.0",
   "description": "Automated API + UI tests for the Baron Learning platform (staging by default).",
   "scripts": {
     "test": "playwright test",
