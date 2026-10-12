@@ -67,4 +67,11 @@ test.describe('course details', () => {
     await page.waitForLoadState('networkidle');
     expect(consoleErrors.filter((e) => e.startsWith('pageerror'))).toEqual([]);
   });
+
+  test('unknown course id renders the 404 page, not an empty course card (BUG-23)', async ({ page }) => {
+    await page.goto('/course/99999999');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
+    expect(await page.locator('.course-card').count()).toBe(0);
+  });
 });
