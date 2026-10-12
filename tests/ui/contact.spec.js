@@ -19,6 +19,20 @@ test.describe('contact us', () => {
     expect(sent).toHaveLength(0);
   });
 
+  test('invalid phone and a 1-character message are rejected client-side (BUG-22)', async ({ page }) => {
+    const sent = [];
+    page.on('request', (r) => r.url().endsWith('configuration/contact-us/') && r.method() === 'POST' && sent.push(r));
+    await page.goto('/contactus');
+    await page.locator('#admin-edit-first_name').fill('QA');
+    await page.locator('#admin-edit-last_name').fill('Automation');
+    await page.locator('input[type="tel"]').fill('abc');
+    await page.locator('#admin-edit-subject').fill('QA automated test');
+    await page.locator('#admin-edit-description').fill('x');
+    await submitButton(page).click();
+    await page.waitForTimeout(500); // give a client-side validator a chance to block the request
+    expect(sent, 'contact-us was submitted with an invalid phone and a 1-char message').toHaveLength(0);
+  });
+
   test('phone has a country-code picker and sends it with the number', async ({ page }) => {
     let body;
     await page.route('**/configuration/contact-us/', (route) => {

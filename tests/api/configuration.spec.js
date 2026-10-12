@@ -52,6 +52,25 @@ test.describe('contact us', () => {
     }
   });
 
+  test('rejects an invalid phone and a 1-character message (BUG-22, ALLOW_WRITES)', async ({ api }) => {
+    // Unlike the registration tests, there's no email field here to pair with the field
+    // under test to guarantee a 400 either way: if this validation gap is still open, the
+    // request below is created on staging for real (it was, the first time this ran: a
+    // contact-us record with phone "abc" and description "x"). Gate it so a default run
+    // never creates that record.
+    test.skip(!env.allowWrites, 'creates a real contact-us record on staging if the bug is still open; set ALLOW_WRITES=1');
+    const res = await api.post('configuration/contact-us/', {
+      data: {
+        first_name: 'QA',
+        last_name: 'Automation',
+        phone: 'abc',
+        subject: 'QA automated test - please ignore',
+        description: 'x',
+      },
+    });
+    expect(res.status(), 'invalid phone / trivial message should be rejected, not created').toBe(400);
+  });
+
   test('accepts a valid submission (ALLOW_WRITES)', async ({ api }) => {
     test.skip(!env.allowWrites, 'sends a real admin email; set ALLOW_WRITES=1');
     const res = await api.post('configuration/contact-us/', {

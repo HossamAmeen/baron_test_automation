@@ -224,4 +224,11 @@ test.describe('route protection (logged out)', () => {
       await expect(page).toHaveURL(/\/login/);
     });
   }
+
+  test('live-lesson route redirects cleanly, without a render error (BUG-30)', async ({ page, consoleErrors }) => {
+    await page.goto('/course-content/24/1/0');
+    await expect(page).toHaveURL(/\/login/);
+    await page.waitForLoadState('networkidle');
+    expect(consoleErrors.filter((e) => e.startsWith('pageerror'))).toEqual([]);
+  });
 });
