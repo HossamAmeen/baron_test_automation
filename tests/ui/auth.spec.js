@@ -90,6 +90,11 @@ test.describe('login form', () => {
     const urlChanged = new URL(page.url()).pathname !== '/login';
     expect(urlChanged || (await opened.count()) > 0, 'forgot-password opens a page or form').toBe(true);
   });
+
+  test('/forgot-password is a deep-linkable route that opens the modal (BUG-01)', async ({ page }) => {
+    await page.goto('/forgot-password');
+    await expect(page.locator('#forgot-password-modal')).toBeVisible();
+  });
 });
 
 test.describe('registration form', () => {
@@ -158,6 +163,7 @@ test.describe('registration form', () => {
     await tels.nth(1).fill('01000000001'); // parent phone keeps the +20 default
     await form.locator('input[placeholder="الاسم الأول"]').fill('Qa');
     await form.locator('input[placeholder="اسم العائلة"]').fill('Tester');
+    await form.locator('select').first().selectOption({ label: 'ذكر' }); // gender is required (BUG-08)
     await form.locator('input[type="email"]').fill('qa.phone@mailinator.com');
     const passwords = form.locator('input[type="password"]');
     await passwords.nth(0).fill('Qa-Passw0rd!');
@@ -192,6 +198,7 @@ test.describe('registration form', () => {
     await tels.nth(1).fill('01000000001');
     await form.locator('input[placeholder="الاسم الأول"]').fill('Qa');
     await form.locator('input[placeholder="اسم العائلة"]').fill('Tester');
+    await form.locator('select').first().selectOption({ label: 'ذكر' }); // gender is required (BUG-08)
     await form.locator('input[type="email"]').fill('qa.reset@mailinator.com');
     const passwords = form.locator('input[type="password"]');
     await passwords.nth(0).fill('Qa-Passw0rd!');
@@ -224,4 +231,11 @@ test.describe('route protection (logged out)', () => {
       await expect(page).toHaveURL(/\/login/);
     });
   }
+
+  test('live-lesson route redirects cleanly, without a render error (BUG-30)', async ({ page, consoleErrors }) => {
+    await page.goto('/course-content/24/1/0');
+    await expect(page).toHaveURL(/\/login/);
+    await page.waitForLoadState('networkidle');
+    expect(consoleErrors.filter((e) => e.startsWith('pageerror'))).toEqual([]);
+  });
 });

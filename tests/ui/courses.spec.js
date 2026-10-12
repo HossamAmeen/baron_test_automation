@@ -18,6 +18,13 @@ test.describe('courses list', () => {
     await expect(page).toHaveURL(new RegExp(`${href}$`));
   });
 
+  test('filter selects have programmatically associated labels (BUG-32)', async ({ page }) => {
+    await page.goto('/courses');
+    for (const id of ['filter-education-level', 'filter-grade', 'filter-term']) {
+      await expect(page.locator(`label[for="${id}"]`), `label for #${id}`).toHaveCount(1);
+    }
+  });
+
   test('country tabs switch without errors', async ({ page, consoleErrors }) => {
     await page.goto('/courses');
     await page.getByRole('tab', { name: /السعودية/ }).click();
@@ -66,5 +73,12 @@ test.describe('course details', () => {
     await page.goto('/course/99999999');
     await page.waitForLoadState('networkidle');
     expect(consoleErrors.filter((e) => e.startsWith('pageerror'))).toEqual([]);
+  });
+
+  test('unknown course id renders the 404 page, not an empty course card (BUG-23)', async ({ page }) => {
+    await page.goto('/course/99999999');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
+    expect(await page.locator('.course-card').count()).toBe(0);
   });
 });
