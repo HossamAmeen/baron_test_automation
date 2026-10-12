@@ -10,6 +10,13 @@ test.describe('contact us', () => {
     await expect(page.getByText(config.email).first()).toBeVisible();
   });
 
+  test('every control has a programmatically associated label (BUG-32)', async ({ page }) => {
+    await page.goto('/contactus');
+    for (const id of ['admin-edit-first_name', 'admin-edit-last_name', 'admin-edit-phone', 'admin-edit-subject', 'admin-edit-description']) {
+      await expect(page.locator(`label[for="${id}"]`), `label for #${id}`).toHaveCount(1);
+    }
+  });
+
   test('empty submit shows field errors and sends nothing @responsive', async ({ page }) => {
     const sent = [];
     page.on('request', (r) => r.url().endsWith('configuration/contact-us/') && r.method() === 'POST' && sent.push(r));

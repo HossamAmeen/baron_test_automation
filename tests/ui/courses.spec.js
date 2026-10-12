@@ -18,6 +18,13 @@ test.describe('courses list', () => {
     await expect(page).toHaveURL(new RegExp(`${href}$`));
   });
 
+  test('filter selects have programmatically associated labels (BUG-32)', async ({ page }) => {
+    await page.goto('/courses');
+    for (const id of ['filter-education-level', 'filter-grade', 'filter-term']) {
+      await expect(page.locator(`label[for="${id}"]`), `label for #${id}`).toHaveCount(1);
+    }
+  });
+
   test('country tabs switch without errors', async ({ page, consoleErrors }) => {
     await page.goto('/courses');
     await page.getByRole('tab', { name: /السعودية/ }).click();
