@@ -27,6 +27,22 @@ test.describe('navigation', () => {
     expect(dir).toBe('rtl');
   });
 
+  test('each route has its own title, not a shared generic one (BUG-27)', async ({ page }) => {
+    const titles = new Map();
+    for (const path of ['/', '/courses', '/aboutus', '/contactus', '/login']) {
+      await page.goto(path);
+      titles.set(path, await page.title());
+    }
+    expect(new Set(titles.values()).size, `titles: ${JSON.stringify([...titles])}`).toBe(titles.size);
+  });
+
+  test('only one h1 per page', async ({ page }) => {
+    for (const path of ['/', '/courses']) {
+      await page.goto(path);
+      await expect(page.locator('h1')).toHaveCount(1);
+    }
+  });
+
   const NAV = [
     ['المواد', /\/courses$/],
     ['من نحن', /\/aboutus$/],
